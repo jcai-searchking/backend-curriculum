@@ -2,14 +2,14 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/server.js",
   "scripts": {
     "test": "dotenv -e .env.test -- jest --runInBand",
     "test:watch": "dotenv -e .env.test -- jest --watch --runInBand",
     "test:ci": "dotenv -e .env.test -- jest --runInBand",
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc"
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "prisma generate && tsc"
   },
   "keywords": [],
   "author": "",

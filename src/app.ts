@@ -7,7 +7,6 @@ import { AppError } from './errors/AppErrors';
 
 import 'dotenv/config';
 import { prisma } from "./prisma"
-import { Prisma } from './generated/prisma';
 
 
 
@@ -210,4 +209,3 @@ app.delete('/users/:id',
 });
 
 app.use(errorHandler);
-

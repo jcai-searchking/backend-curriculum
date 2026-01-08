@@ -28,7 +28,7 @@ jobs:
           --health-retries=5
 
     env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       NODE_ENV: test
 
     steps:

@@ -59,6 +59,13 @@ const userQuerySchema = z.object({
 })
 
 
+// Health Check End Point ==========================
+app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok" })
+})
+
+
+
 // Routes ==========================================
 
 // Create User

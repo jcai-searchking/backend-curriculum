@@ -1,9 +1,11 @@
 import express from 'express';
 import { z } from 'zod';
+import argon2 from 'argon2'
 
 import { validateBody, validateParams, validateQuery } from './middleware/validate';
 import { errorHandler } from './middleware/errorHandler';
 import { AppError } from './errors/AppErrors';
+import authRoutes from './auth/auth.routes'
 
 import 'dotenv/config';
 import { prisma } from "./prisma"
@@ -25,8 +27,10 @@ interface User {
 // Zod Schemas =======================================
 
 const createUserSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(8),
     name: z.string(),
-    age: z.number()
+    age: z.number().int().positive()
 })
 
 const updateUserSchema = z.object({
@@ -64,6 +68,9 @@ app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok" })
 })
 
+// Authentication Route 
+
+app.use('/auth', authRoutes)
 
 
 // Routes ==========================================
@@ -74,15 +81,29 @@ app.post(
     validateBody(createUserSchema),
     async (req, res)  =>   {
 
-    const { name, age } = req.validatedBody as {
+    const { email, password, name, age } = req.validatedBody as {
+        email: string,
+        password: string,
         name: string,
         age: number
     }
 
+    const passwordHash = await argon2.hash(password)
+
     const user = await prisma.user.create({
         data: {
+            email,
+            passwordHash,
             name,
             age,
+        },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            age: true,
+            deletedAt: true,
+            createdAt: true,
         }
     })
    
@@ -118,6 +139,14 @@ app.get('/users/',
         const users = await prisma.user.findMany({
             where,
             orderBy: { id: 'asc'},
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                age: true,
+                deletedAt: true,
+                createdAt: true,
+            }
         });
 
         res.status(200).json({users})
@@ -136,6 +165,14 @@ app.get('/users/:id',
             where: {
                 id: numericId,
                 deletedAt: null
+            },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                age: true,
+                deletedAt: true,
+                createdAt: true,
             }
         })
         
@@ -177,6 +214,14 @@ app.put(
         data: {
             ...(name !== undefined && {name}),
             ...(age !== undefined && {age})
+        },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            age: true,
+            deletedAt: true,
+            createdAt: true,
         }
     })
 

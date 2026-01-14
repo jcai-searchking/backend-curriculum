@@ -7,8 +7,11 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  age       Int
-  deletedAt DateTime?
+  id            Int           @id @default(autoincrement())
+  email         String        @unique
+  passwordHash  String
+  name          String
+  age           Int
+  deletedAt     DateTime?
+  createdAt     DateTime      @default(now())
 }

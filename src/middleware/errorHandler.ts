@@ -10,12 +10,18 @@ export function errorHandler(
     next: NextFunction,
 ) {
     if (err instanceof AppError) {
-        return res.status(err.statusCode).json({
+        const payload: Record<string, unknown> = {
             error: {
                 message: err.message,
                 statusCode: err.statusCode,
             },
-        });
+        }
+
+        if (ENV.NODE_ENV !== "production" && err.details !== undefined) {
+            (payload.error as Record<string, unknown>).details = err.details
+        }
+
+        return res.status(err.statusCode).json(payload);
     }
     logError(err);
 

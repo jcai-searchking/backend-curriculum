@@ -17,7 +17,8 @@ services:
   api:
     build: .
     container_name: backend-api
-    command: node dist/server.js
+    command: >
+      sh -c "npx prisma migrate dev && node dist/server.js"
     ports:
       - "3001:3001"
     environment:

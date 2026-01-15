@@ -18,8 +18,8 @@ describe('POST /auth/register', () => {
             })
         expect(res.status).toBe(201)
 
-        expect(res.body).not.toHaveProperty('password')
-        expect(res.body).not.toHaveProperty('passwordHash')
+        expect(res.body.user).not.toHaveProperty('password')
+        expect(res.body.user).not.toHaveProperty('passwordHash')
         
         const user = await prisma.user.findUnique({
             where: { email: 'testuser@sk.ca' },

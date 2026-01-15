@@ -23,7 +23,7 @@ describe('GET /users/:id', ()=> {
 
     it("User not found", async () => {
 
-        const res = await request(app).get('/users/9999')
+        const res = await request(app).get('/users/c123456789')
 
         expect(res.status).toBe(404)
     })

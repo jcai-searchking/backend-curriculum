@@ -32,7 +32,7 @@ describe('PUT /users/:id', () => {
 
     it('Returns 404 if user does not exist', async ()=> {
         const res = await request(app)
-            .put(`/users/99999`)
+            .put(`/users/c123456789`)
             .send({ name: 'NonExistentUser' })
 
         expect(res.status).toBe(404)

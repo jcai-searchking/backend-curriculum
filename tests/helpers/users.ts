@@ -15,7 +15,7 @@ export async function seedUser( data?: {
             name: data?.name ?? 'Alice',
             age: data?.age ?? 30, 
             deletedAt: data?.deletedAt ?? null,
-            email: data?.email ?? `user${++userCounter}@example.com`,
+            email: data?.email ?? `user${++userCounter}@sk.ca`,
             passwordHash: data?.passwordHash ?? 'test-hash',
         }
     })

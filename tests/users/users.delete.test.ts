@@ -23,7 +23,7 @@ describe('DELETE /users/:id', () => {
     })
 
     it('Returns 404 if user does not exist', async () => {
-        const res = await request(app).delete('/users/99999')
+        const res = await request(app).delete('/users/c123456789')
 
         expect(res.status).toBe(404)
     })

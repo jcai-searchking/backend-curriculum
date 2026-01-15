@@ -18,7 +18,7 @@ app.use(express.json())
 // Types  ============================================
 
 interface User {
-    id: number;
+    id: string;
     name: string;
     age: number;
     deletedAt: Date | null
@@ -27,7 +27,7 @@ interface User {
 // Zod Schemas =======================================
 
 const createUserSchema = z.object({
-    email: z.string().email(),
+    email: z.string().trim().pipe(z.email()),
     password: z.string().min(8),
     name: z.string(),
     age: z.number().int().positive()
@@ -43,9 +43,7 @@ const updateUserSchema = z.object({
 );
 
 const userParamSchema = z.object({
-    id: z
-    .string()
-    .regex(/^\d+$/, 'id must be a number')
+    id: z.string().trim().pipe(z.cuid())
 })
 
 const userQuerySchema = z.object({
@@ -158,12 +156,10 @@ app.get('/users/:id',
     validateParams(userParamSchema),
     async(req, res) => {
         const {id} = req.validatedParams as { id: string}
-        
-        const numericId = Number(id)
 
         const user = await prisma.user.findFirst({
             where: {
-                id: numericId,
+                id,
                 deletedAt: null
             },
             select: {
@@ -191,7 +187,6 @@ app.put(
     validateBody(updateUserSchema),
     async (req, res) => {
     const { id }  = req.validatedParams as { id:string }
-    const numericID = Number(id) 
 
     const { name, age } = req.validatedBody as {
         name?: string,
@@ -200,7 +195,7 @@ app.put(
     
     const existingUser = await prisma.user.findFirst({
         where: { 
-            id: numericID, 
+            id, 
             deletedAt: null,
         },
     })
@@ -210,7 +205,7 @@ app.put(
     }
 
     const updatedUser = await prisma.user.update({
-        where: { id: numericID},
+        where: { id },
         data: {
             ...(name !== undefined && {name}),
             ...(age !== undefined && {age})
@@ -238,14 +233,13 @@ app.delete('/users/:id',
     validateParams(userParamSchema),
     async (req, res) => {
     const { id } = req.validatedParams as { id:string }
-    const numericId = Number(id)
     
 
     try {
         
         const user = await prisma.user.update({
             where: { 
-                id: numericId,
+                id,
                 deletedAt: null,
              },
             data: {

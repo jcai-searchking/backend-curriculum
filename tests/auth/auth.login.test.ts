@@ -35,6 +35,9 @@ describe('POST /auth/login', () => {
                 password: 'password123',
             })
         expect(res.status).toBe(200)
+        
+        expect(res.body.user).toHaveProperty('accessToken')
+        expect(typeof res.body.user.accessToken).toBe('string')
 
         expect(res.body.user).not.toHaveProperty('password')
         expect(res.body.user).not.toHaveProperty('passwordHash')

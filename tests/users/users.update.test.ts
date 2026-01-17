@@ -3,8 +3,14 @@ import { app } from '../../src/app'
 import { resetDb, disconnectDb } from '../helpers/db'
 import { prisma } from '../../src/prisma'
 import { seedUser } from '../helpers/users'
+import { makeAuthHeader } from '../helpers/auth'
 
-beforeEach(resetDb)
+let authHeader: string
+
+beforeEach(async () => {
+    await resetDb()
+    authHeader = makeAuthHeader('test-user')
+})
 afterAll(disconnectDb)
 
 describe('PUT /users/:id', () => {
@@ -12,8 +18,9 @@ describe('PUT /users/:id', () => {
         const user = await seedUser()
         
         const res = await request(app)
-        .put(`/users/${user.id}`)
-        .send({ name: 'Alison', age: 25 })
+            .put(`/users/${user.id}`)
+            .set('Authorization', authHeader)
+            .send({ name: 'Alison', age: 25 })
         
         expect(res.status).toBe(200)
         expect(res.body.user.name).toBe("Alison")
@@ -25,6 +32,7 @@ describe('PUT /users/:id', () => {
 
         const res = await request(app)
             .put(`/users/${user.id}`)
+            .set('Authorization', authHeader)
             .send({})
         
         expect(res.status).toBe(400)
@@ -33,6 +41,7 @@ describe('PUT /users/:id', () => {
     it('Returns 404 if user does not exist', async ()=> {
         const res = await request(app)
             .put(`/users/c123456789`)
+            .set('Authorization', authHeader)
             .send({ name: 'NonExistentUser' })
 
         expect(res.status).toBe(404)
@@ -44,6 +53,7 @@ describe('PUT /users/:id', () => {
 
         const res = await request(app)
             .put(`/users/${deletedUser.id}`)
+            .set('Authorization', authHeader)
             .send({ name: 'ShouldNotUpdate'})
             
             expect(res.status).toBe(404)

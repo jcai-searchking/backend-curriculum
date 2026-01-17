@@ -1,9 +1,10 @@
-import e, { Request, Response } from 'express'
+import { Request, Response } from 'express'
 import argon2 from 'argon2'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../prisma'
 import { registerSchema, loginSchema } from './auth.schemas'
 import { AppError } from '../errors/AppErrors'
+import jwt from 'jsonwebtoken'
 
 export async function register(req: Request, res: Response) {
     const parsed = registerSchema.safeParse(req.body)
@@ -51,25 +52,32 @@ export async function login(req: Request, res: Response) {
 
     const { email, password } = parsed.data
 
-    const user = await prisma.user.findFirst({
+    const user = await prisma.user.findUnique({
         where: {
-            email,
-            deletedAt: null,
+            email
         }
     })
 
-    if (!user) throw new AppError("Invalid credentials", 401)
-    const isValid = await argon2.verify(
-        user.passwordHash,
-        password
+    
+    if (!user || user.deletedAt ) throw new AppError("Invalid credentials", 401)
+        const isValid = await argon2.verify(
+    user.passwordHash,
+    password
+)
+if(!isValid) throw new AppError("Invalid credentials", 401)
+    
+    const accessToken = jwt.sign(
+        { sub: user.id },
+        process.env.JWT_SECRET!,
+        { expiresIn: '15m'}
     )
-    if(!isValid) throw new AppError("Invalid credentials", 401)
-
+    
     return res.status(200).json({
         user: {
             id: user.id,
             name: user.name,
             email: user.email,
+            accessToken
         },
     })
 }

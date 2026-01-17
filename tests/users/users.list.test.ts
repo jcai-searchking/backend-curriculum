@@ -2,8 +2,14 @@ import request from "supertest"
 import { app } from "../../src/app"
 import { seedUser } from "../helpers/users"
 import { disconnectDb, resetDb } from "../helpers/db"
+import { makeAuthHeader } from "../helpers/auth"
 
-beforeEach(resetDb)
+let authHeader: string
+
+beforeEach(async () => {
+    await resetDb()
+    authHeader = makeAuthHeader('test-user')
+})
 afterAll(disconnectDb)
 
 describe('GET /users', ()=> {
@@ -12,7 +18,9 @@ describe('GET /users', ()=> {
         await seedUser({ name: "Marissa"})
         await seedUser({ name: "Cassandra", age: 23 })
 
-        const res = await request(app).get('/users')
+        const res = await request(app)
+            .get('/users')
+            .set('Authorization', authHeader)
 
         expect(res.status).toBe(200)
         expect(res.body.users.length).toBe(3)
@@ -22,7 +30,10 @@ describe('GET /users', ()=> {
         await seedUser({ name: "Active", deletedAt: null})
         await seedUser({ name: "Deleted", deletedAt: new Date()})
 
-        const res = await request(app).get('/users').query({ active: 'true' })
+        const res = await request(app)
+            .get('/users')
+            .set('Authorization', authHeader)
+            .query({ active: 'true' })
 
         expect(res.status).toBe(200)
         expect(res.body.users.length).toBe(1)
@@ -34,7 +45,10 @@ describe('GET /users', ()=> {
         await seedUser({ name: 'Active', deletedAt: null })
         await seedUser({ name: 'Deleted', deletedAt: new Date() })
 
-        const res = await request(app).get('/users').query({ active: "false"})
+        const res = await request(app)
+            .get('/users')
+            .set('Authorization', authHeader)
+            .query({ active: 'false' })
         
         expect(res.status).toBe(200)
         expect(res.body.users.length).toBe(1)
@@ -47,7 +61,10 @@ describe('GET /users', ()=> {
         await seedUser()
         await seedUser({ name: 'Old', age: 65 })
 
-        const res = await request(app).get('/users').query({ minAge: "25"})
+        const res = await request(app)
+            .get('/users')
+            .set('Authorization', authHeader)
+            .query({ minAge: '25' })
 
         expect(res.status).toBe(200)
         expect(res.body.users.length).toBe(3)
@@ -55,7 +72,10 @@ describe('GET /users', ()=> {
     })
 
     it('Returns 400 for invalid query', async () => {
-        const res = await request(app).get('/users').query({ minAge: 'legal' })
+        const res = await request(app)
+            .get('/users')
+            .set('Authorization', authHeader)
+            .query({ minAge: 'legal' })
 
         expect(res.status).toBe(400)
     })

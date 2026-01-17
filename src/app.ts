@@ -1,16 +1,19 @@
-import express from 'express';
-import { z } from 'zod';
+import express from 'express'
+import { z } from 'zod'
 import argon2 from 'argon2'
 
-import { validateBody, validateParams, validateQuery } from './middleware/validate';
-import { errorHandler } from './middleware/errorHandler';
-import { AppError } from './errors/AppErrors';
+import {
+    validateBody,
+    validateParams,
+    validateQuery,
+} from './middleware/validate'
+import { errorHandler } from './middleware/errorHandler'
+import { AppError } from './errors/AppErrors'
 import authRoutes from './auth/auth.routes'
+import { requiredAuth } from './middleware/requireAuth'
 
-import 'dotenv/config';
-import { prisma } from "./prisma"
-
-
+import 'dotenv/config'
+import { prisma } from './prisma'
 
 export const app = express()
 app.use(express.json())
@@ -18,9 +21,9 @@ app.use(express.json())
 // Types  ============================================
 
 interface User {
-    id: string;
-    name: string;
-    age: number;
+    id: string
+    name: string
+    age: number
     deletedAt: Date | null
 }
 
@@ -30,59 +33,51 @@ const createUserSchema = z.object({
     email: z.string().trim().pipe(z.email()),
     password: z.string().min(8),
     name: z.string(),
-    age: z.number().int().positive()
+    age: z.number().int().positive(),
 })
 
-const updateUserSchema = z.object({
-    name: z.string().optional(),
-    age: z.number().optional(),
-  })
-  .refine(
-    data => Object.keys(data).length > 0,
-    { message: 'At least one field must be provided' }
-);
+const updateUserSchema = z
+    .object({
+        name: z.string().optional(),
+        age: z.number().optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0, {
+        message: 'At least one field must be provided',
+    })
 
 const userParamSchema = z.object({
-    id: z.string().trim().pipe(z.cuid())
+    id: z.string().trim().pipe(z.cuid()),
 })
 
 const userQuerySchema = z.object({
-    active: z.preprocess( val => {
-        if (val === undefined ) return undefined
+    active: z.preprocess((val) => {
+        if (val === undefined) return undefined
         return val === 'true'
-    },
-    z.boolean().optional()
-    ),
+    }, z.boolean().optional()),
 
-    minAge: z
-    .coerce.number()
-    .optional()
-
+    minAge: z.coerce.number().optional(),
 })
-
 
 // Health Check End Point ==========================
-app.get("/health", (_req, res) => {
-    res.status(200).json({ status: "ok" })
+app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok' })
 })
 
-// Authentication Route 
+// Authentication Route
 
 app.use('/auth', authRoutes)
 
+// Protect all /users routes
+app.use('/users', requiredAuth)
 
 // Routes ==========================================
 
 // Create User
-app.post(
-    '/users',
-    validateBody(createUserSchema),
-    async (req, res)  =>   {
-
+app.post('/users', validateBody(createUserSchema), async (req, res) => {
     const { email, password, name, age } = req.validatedBody as {
-        email: string,
-        password: string,
-        name: string,
+        email: string
+        password: string
+        name: string
         age: number
     }
 
@@ -102,9 +97,9 @@ app.post(
             age: true,
             deletedAt: true,
             createdAt: true,
-        }
+        },
     })
-   
+
     res.status(201).json({
         message: 'User Successfully Created',
         user,
@@ -112,12 +107,13 @@ app.post(
 })
 
 // List Users
-app.get('/users/',
+app.get(
+    '/users/',
     validateQuery(userQuerySchema),
     async (req, res) => {
         const { active, minAge } = req.validatedQuery as {
-            active? : boolean;
-            minAge? : number;
+            active?: boolean
+            minAge?: number
         }
 
         const where: any = {}
@@ -127,16 +123,16 @@ app.get('/users/',
         }
 
         if (active === false) {
-            where.deletedAt = {not: null }
+            where.deletedAt = { not: null }
         }
 
         if (minAge !== undefined) {
-            where.age = {gte: minAge}
+            where.age = { gte: minAge }
         }
 
         const users = await prisma.user.findMany({
             where,
-            orderBy: { id: 'asc'},
+            orderBy: { id: 'asc' },
             select: {
                 id: true,
                 email: true,
@@ -144,23 +140,24 @@ app.get('/users/',
                 age: true,
                 deletedAt: true,
                 createdAt: true,
-            }
-        });
+            },
+        })
 
-        res.status(200).json({users})
-    }
+        res.status(200).json({ users })
+    },
 )
 
 // Get User
-app.get('/users/:id',
+app.get(
+    '/users/:id',
     validateParams(userParamSchema),
-    async(req, res) => {
-        const {id} = req.validatedParams as { id: string}
+    async (req, res) => {
+        const { id } = req.validatedParams as { id: string }
 
         const user = await prisma.user.findFirst({
             where: {
                 id,
-                deletedAt: null
+                deletedAt: null,
             },
             select: {
                 id: true,
@@ -169,89 +166,83 @@ app.get('/users/:id',
                 age: true,
                 deletedAt: true,
                 createdAt: true,
-            }
+            },
         })
-        
-        if (!user) {
-            throw new AppError("User not found", 404)
-        }
-        
-        res.status(200).json({user})
-})
 
+        if (!user) {
+            throw new AppError('User not found', 404)
+        }
+
+        res.status(200).json({ user })
+    },
+)
 
 // Update User
 app.put(
-    '/users/:id', 
-    validateParams(userParamSchema), 
+    '/users/:id',
+    validateParams(userParamSchema),
     validateBody(updateUserSchema),
     async (req, res) => {
-    const { id }  = req.validatedParams as { id:string }
+        const { id } = req.validatedParams as { id: string }
 
-    const { name, age } = req.validatedBody as {
-        name?: string,
-        age?: number
-    }
-    
-    const existingUser = await prisma.user.findFirst({
-        where: { 
-            id, 
-            deletedAt: null,
-        },
-    })
-
-    if (!existingUser) {
-        throw new AppError('User not found', 404)
-    }
-
-    const updatedUser = await prisma.user.update({
-        where: { id },
-        data: {
-            ...(name !== undefined && {name}),
-            ...(age !== undefined && {age})
-        },
-        select: {
-            id: true,
-            email: true,
-            name: true,
-            age: true,
-            deletedAt: true,
-            createdAt: true,
+        const { name, age } = req.validatedBody as {
+            name?: string
+            age?: number
         }
-    })
 
-    res.status(200).json({
-        message: "Updated User Successfully",
-        user: updatedUser,
-    })
-})
-
-
-
-// delete user
-app.delete('/users/:id',
-    validateParams(userParamSchema),
-    async (req, res) => {
-    const { id } = req.validatedParams as { id:string }
-    
-
-    try {
-        
-        const user = await prisma.user.update({
-            where: { 
+        const existingUser = await prisma.user.findFirst({
+            where: {
                 id,
                 deletedAt: null,
-             },
-            data: {
-                deletedAt: new Date()
-            }
-        });
+            },
+        })
 
-        res.status(200).json({ message: "User deleted successfully"});
-        
+        if (!existingUser) {
+            throw new AppError('User not found', 404)
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id },
+            data: {
+                ...(name !== undefined && { name }),
+                ...(age !== undefined && { age }),
+            },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                age: true,
+                deletedAt: true,
+                createdAt: true,
+            },
+        })
+
+        res.status(200).json({
+            message: 'Updated User Successfully',
+            user: updatedUser,
+        })
+    },
+)
+
+// delete user
+app.delete('/users/:id', validateParams(userParamSchema), async (req, res) => {
+    const { id } = req.validatedParams as { id: string }
+
+    try {
+        const user = await prisma.user.update({
+            where: {
+                id,
+                deletedAt: null,
+            },
+            data: {
+                deletedAt: new Date(),
+            },
+        })
+
+        res.status(200).json({ message: 'User deleted successfully' })
     } catch (error) {
         throw new AppError('User does not exist', 404)
     }
-});
+})
 
-app.use(errorHandler);
+app.use(errorHandler)

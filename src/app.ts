@@ -10,6 +10,7 @@ import {
 import { errorHandler } from './middleware/errorHandler'
 import { AppError } from './errors/AppErrors'
 import authRoutes from './auth/auth.routes'
+import usersRoutes from './users/users.routes'
 import { requiredAuth } from './middleware/requireAuth'
 
 import 'dotenv/config'
@@ -69,6 +70,7 @@ app.use('/auth', authRoutes)
 
 // Protect all /users routes
 app.use('/users', requiredAuth)
+app.use('/users', usersRoutes)
 
 // Routes ==========================================
 

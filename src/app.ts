@@ -1,31 +1,32 @@
-import express from 'express'
-import { z } from 'zod'
-import argon2 from 'argon2'
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import { z } from 'zod';
+import argon2 from 'argon2';
 
 import {
     validateBody,
     validateParams,
     validateQuery,
-} from './middleware/validate'
-import { errorHandler } from './middleware/errorHandler'
-import { AppError } from './errors/AppErrors'
-import authRoutes from './auth/auth.routes'
-import usersRoutes from './users/users.routes'
-import { requiredAuth } from './middleware/requireAuth'
+} from './middleware/validate';
+import { errorHandler } from './middleware/errorHandler';
+import { AppError } from './errors/AppErrors';
+import authRoutes from './auth/auth.routes';
+import usersRoutes from './users/users.routes';
+import { requiredAuth } from './middleware/requireAuth';
 
-import 'dotenv/config'
-import { prisma } from './prisma'
+import 'dotenv/config';
+import { prisma } from './prisma';
 
-export const app = express()
-app.use(express.json())
-
+export const app = express();
+app.use(express.json());
+app.use(cookieParser());
 // Types  ============================================
 
 interface User {
-    id: string
-    name: string
-    age: number
-    deletedAt: Date | null
+    id: string;
+    name: string;
+    age: number;
+    deletedAt: Date | null;
 }
 
 // Zod Schemas =======================================
@@ -35,7 +36,7 @@ const createUserSchema = z.object({
     password: z.string().min(8),
     name: z.string(),
     age: z.number().int().positive(),
-})
+});
 
 const updateUserSchema = z
     .object({
@@ -44,46 +45,46 @@ const updateUserSchema = z
     })
     .refine((data) => Object.keys(data).length > 0, {
         message: 'At least one field must be provided',
-    })
+    });
 
 const userParamSchema = z.object({
     id: z.string().trim().pipe(z.cuid()),
-})
+});
 
 const userQuerySchema = z.object({
     active: z.preprocess((val) => {
-        if (val === undefined) return undefined
-        return val === 'true'
+        if (val === undefined) return undefined;
+        return val === 'true';
     }, z.boolean().optional()),
 
     minAge: z.coerce.number().optional(),
-})
+});
 
 // Health Check End Point ==========================
 app.get('/health', (_req, res) => {
-    res.status(200).json({ status: 'ok' })
-})
+    res.status(200).json({ status: 'ok' });
+});
 
 // Authentication Route
 
-app.use('/auth', authRoutes)
+app.use('/auth', authRoutes);
 
 // Protect all /users routes
-app.use('/users', requiredAuth)
-app.use('/users', usersRoutes)
+app.use('/users', requiredAuth);
+app.use('/users', usersRoutes);
 
 // Routes ==========================================
 
 // Create User
 app.post('/users', validateBody(createUserSchema), async (req, res) => {
     const { email, password, name, age } = req.validatedBody as {
-        email: string
-        password: string
-        name: string
-        age: number
-    }
+        email: string;
+        password: string;
+        name: string;
+        age: number;
+    };
 
-    const passwordHash = await argon2.hash(password)
+    const passwordHash = await argon2.hash(password);
 
     const user = await prisma.user.create({
         data: {
@@ -100,84 +101,76 @@ app.post('/users', validateBody(createUserSchema), async (req, res) => {
             deletedAt: true,
             createdAt: true,
         },
-    })
+    });
 
     res.status(201).json({
         message: 'User Successfully Created',
         user,
-    })
-})
+    });
+});
 
 // List Users
-app.get(
-    '/users/',
-    validateQuery(userQuerySchema),
-    async (req, res) => {
-        const { active, minAge } = req.validatedQuery as {
-            active?: boolean
-            minAge?: number
-        }
+app.get('/users/', validateQuery(userQuerySchema), async (req, res) => {
+    const { active, minAge } = req.validatedQuery as {
+        active?: boolean;
+        minAge?: number;
+    };
 
-        const where: any = {}
+    const where: any = {};
 
-        if (active === true) {
-            where.deletedAt = null
-        }
+    if (active === true) {
+        where.deletedAt = null;
+    }
 
-        if (active === false) {
-            where.deletedAt = { not: null }
-        }
+    if (active === false) {
+        where.deletedAt = { not: null };
+    }
 
-        if (minAge !== undefined) {
-            where.age = { gte: minAge }
-        }
+    if (minAge !== undefined) {
+        where.age = { gte: minAge };
+    }
 
-        const users = await prisma.user.findMany({
-            where,
-            orderBy: { id: 'asc' },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                age: true,
-                deletedAt: true,
-                createdAt: true,
-            },
-        })
+    const users = await prisma.user.findMany({
+        where,
+        orderBy: { id: 'asc' },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            age: true,
+            deletedAt: true,
+            createdAt: true,
+        },
+    });
 
-        res.status(200).json({ users })
-    },
-)
+    res.status(200).json({ users });
+});
 
 // Get User
-app.get(
-    '/users/:id',
-    validateParams(userParamSchema),
-    async (req, res) => {
-        const { id } = req.validatedParams as { id: string }
+app.get('/users/:id', validateParams(userParamSchema), async (req, res) => {
+    const { id } = req.validatedParams as { id: string };
 
-        const user = await prisma.user.findFirst({
-            where: {
-                id,
-                deletedAt: null,
-            },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                age: true,
-                deletedAt: true,
-                createdAt: true,
-            },
-        })
+    const user = await prisma.user.findFirst({
+        where: {
+            id,
+            deletedAt: null,
+        },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            age: true,
+            deletedAt: true,
+            createdAt: true,
+        },
+    });
 
-        if (!user) {
-            throw new AppError('User not found', 404)
-        }
+    if (!user) {
+        throw new AppError('User not found', 404);
+    }
 
-        res.status(200).json({ user })
-    },
-)
+    res.status(200).json({ user });
+});
 
 // Update User
 app.put(
@@ -185,22 +178,22 @@ app.put(
     validateParams(userParamSchema),
     validateBody(updateUserSchema),
     async (req, res) => {
-        const { id } = req.validatedParams as { id: string }
+        const { id } = req.validatedParams as { id: string };
 
         const { name, age } = req.validatedBody as {
-            name?: string
-            age?: number
-        }
+            name?: string;
+            age?: number;
+        };
 
         const existingUser = await prisma.user.findFirst({
             where: {
                 id,
                 deletedAt: null,
             },
-        })
+        });
 
         if (!existingUser) {
-            throw new AppError('User not found', 404)
+            throw new AppError('User not found', 404);
         }
 
         const updatedUser = await prisma.user.update({
@@ -217,18 +210,18 @@ app.put(
                 deletedAt: true,
                 createdAt: true,
             },
-        })
+        });
 
         res.status(200).json({
             message: 'Updated User Successfully',
             user: updatedUser,
-        })
+        });
     },
-)
+);
 
 // delete user
 app.delete('/users/:id', validateParams(userParamSchema), async (req, res) => {
-    const { id } = req.validatedParams as { id: string }
+    const { id } = req.validatedParams as { id: string };
 
     try {
         const user = await prisma.user.update({
@@ -239,12 +232,12 @@ app.delete('/users/:id', validateParams(userParamSchema), async (req, res) => {
             data: {
                 deletedAt: new Date(),
             },
-        })
+        });
 
-        res.status(200).json({ message: 'User deleted successfully' })
+        res.status(200).json({ message: 'User deleted successfully' });
     } catch (error) {
-        throw new AppError('User does not exist', 404)
+        throw new AppError('User does not exist', 404);
     }
-})
+});
 
-app.use(errorHandler)
+app.use(errorHandler);

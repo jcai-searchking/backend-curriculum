@@ -4,7 +4,7 @@
     "description": "",
     "main": "dist/server.js",
     "scripts": {
-        "test": "dotenv -e .env.test -- jest --runInBand",
+        "test": "dotenv -e .env.test -- jest --runInBand --forceExit",
         "test:watch": "dotenv -e .env.test -- jest --watch --runInBand",
         "db:test:push": "dotenv -e .env.test -- prisma db push",
         "start": "node dist/server.js",

@@ -1,3 +1,6 @@
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
+
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { z } from 'zod';
@@ -11,6 +14,7 @@ import {
 import { errorHandler } from './middleware/errorHandler';
 import { AppError } from './errors/AppErrors';
 import authRoutes from './auth/auth.routes';
+import healthRoutes from './health/health.routes';
 import usersRoutes from './users/users.routes';
 import { requiredAuth } from './middleware/requireAuth';
 
@@ -61,12 +65,13 @@ const userQuerySchema = z.object({
     minAge: z.coerce.number().optional(),
 });
 
-// Health Check End Point ==========================
-app.get('/health', (_req, res) => {
-    res.status(200).json({ status: 'ok' });
-});
+
+
+// Documentation Route
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Authentication Route
+app.use('/health', healthRoutes);
 
 app.use('/auth', authRoutes);
 

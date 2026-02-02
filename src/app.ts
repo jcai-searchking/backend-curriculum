@@ -1,5 +1,6 @@
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
+import redis from './redis';
 
 import express from 'express';
 import cookieParser from 'cookie-parser';
@@ -65,8 +66,6 @@ const userQuerySchema = z.object({
     minAge: z.coerce.number().optional(),
 });
 
-
-
 // Documentation Route
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -117,6 +116,15 @@ app.post('/users', validateBody(createUserSchema), async (req, res) => {
 
 // List Users
 app.get('/users/', validateQuery(userQuerySchema), async (req, res) => {
+    const cacheKey = `users:${JSON.stringify(req.validatedQuery)}`;
+
+    const cachedData = await redis.get(cacheKey);
+
+    if (cachedData) {
+        console.log('⚡️ Serving from Cache (Fast)');
+        return res.status(200).json(JSON.parse(cachedData));
+    }
+
     const { active, minAge } = req.validatedQuery as {
         active?: boolean;
         minAge?: number;
@@ -136,6 +144,7 @@ app.get('/users/', validateQuery(userQuerySchema), async (req, res) => {
         where.age = { gte: minAge };
     }
 
+    console.log('🐢 Serving from Database (Slow)');
     const users = await prisma.user.findMany({
         where,
         orderBy: { id: 'asc' },
@@ -148,6 +157,10 @@ app.get('/users/', validateQuery(userQuerySchema), async (req, res) => {
             createdAt: true,
         },
     });
+
+    if (users.length > 0) {
+        await redis.set(cacheKey, JSON.stringify({ users }), 'EX', 60);
+    }
 
     res.status(200).json({ users });
 });

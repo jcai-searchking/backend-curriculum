@@ -10,7 +10,7 @@ const sendEmail = (job: Job) => {
     return Promise.resolve();
 };
 
-const worker = new Worker(
+export const worker = new Worker(
     'email-queue',
     async (job: Job) => {
         console.log(

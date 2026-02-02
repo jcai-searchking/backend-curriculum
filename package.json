@@ -6,7 +6,6 @@
     "scripts": {
         "test": "dotenv -e .env.test -- jest --runInBand",
         "test:watch": "dotenv -e .env.test -- jest --watch --runInBand",
-        "test:ci": "dotenv -e .env.test -- jest --runInBand",
         "db:test:push": "dotenv -e .env.test -- prisma db push",
         "start": "node dist/server.js",
         "dev": "dotenv -e .env -- ts-node-dev --respawn --transpile-only src/server.ts",

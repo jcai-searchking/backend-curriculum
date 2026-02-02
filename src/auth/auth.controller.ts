@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { hashToken } from '../utils/crypto';
 import cookieParser from 'cookie-parser';
+import { addEmailJob } from '../queues/email.queue';
 
 export async function register(req: Request, res: Response) {
     const parsed = registerSchema.safeParse(req.body);
@@ -36,6 +37,8 @@ export async function register(req: Request, res: Response) {
                 createdAt: true,
             },
         });
+
+        await addEmailJob(user.email, user.name);
 
         return res.status(201).json({ user });
     } catch (err) {

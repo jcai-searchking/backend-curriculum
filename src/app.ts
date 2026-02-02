@@ -20,6 +20,7 @@ import { prisma } from './prisma';
 export const app = express();
 app.use(express.json());
 app.use(cookieParser());
+
 // Types  ============================================
 
 interface User {

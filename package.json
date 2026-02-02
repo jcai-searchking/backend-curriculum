@@ -9,7 +9,8 @@
         "test:ci": "dotenv -e .env.test -- jest --runInBand",
         "db:test:push": "dotenv -e .env.test -- prisma db push",
         "start": "node dist/server.js",
-        "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+        "dev": "dotenv -e .env -- ts-node-dev --respawn --transpile-only src/server.ts",
+        "worker": "ts-node-dev --respawn --transpile-only src/workers/email.worker.ts",
         "build": "prisma generate && tsc"
     },
     "keywords": [],
@@ -19,8 +20,10 @@
         "@prisma/adapter-pg": "^7.2.0",
         "@prisma/client": "^7.2.0",
         "argon2": "^0.44.0",
+        "bullmq": "^5.67.2",
         "cookie-parser": "^1.4.7",
         "express": "^5.2.1",
+        "ioredis": "^5.9.2",
         "jsonwebtoken": "^9.0.3",
         "pg": "^8.16.3",
         "zod": "^4.2.1"
